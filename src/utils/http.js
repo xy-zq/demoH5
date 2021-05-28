@@ -1,86 +1,51 @@
 import axios from 'axios';
-import { baseUrl, token } from '@/utils/config/index.js'
+import { Toast } from 'vant';
+import { baseUrl, token } from '@/utils/config/index.js';
 
 axios.defaults.timeout = 60000;
 axios.defaults.baseURL = baseUrl;
 
-
 axios.defaults.headers.post['Content-Type'] = 'multipart/json;charset=UTF-8;';
 
 
-// 图片的请求
-let imgAxios = axios.create({
-	baseURL: baseUrl,
-	timeout: 60000,
-	headers: {
-		'Content-Type': 'multipart/form-data',
-		'token': `${ token }`
-	}
-});
+const service = axios.create({
+  baseURL: baseApi, // url = base api url + request url
+  withCredentials: true, // send cookies when cross-domain requests
+})
 
 // 请求拦截
 axios.interceptors.request.use((config) => {
 		config.headers.token = token;
-		if (config.method === 'post') {
-			config.data = {
-				...config.data
-			};
-		} else if (config.method === 'get') {
-			config.params = {
-				...config.params
-			};
+		
+		// 不传递默认开启loading
+		if (!config.hideloading) {
+		  // loading
+		  Toast.loading({
+		    forbidClick: true
+		  })
 		}
+		
 		return config;
 	},
 	(error) => {
+		console.log('err>>>>>>>' + error) // for debug
 		return Promise.error(error);
 	});
 
 // 响应的拦截
 axios.interceptors.response.use((response) => {
 	if (response.status === 200) {
+		Toast.clear();
 		return Promise.resolve(response);
 	} else {
+		Toast.clear();
 		return Promise.reject(response);
 	}
+}, (error) => {
+	Toast.clear();
+	Toast.fail('请求错误');
+	console.log('err>>>>>>>' + error) // for debug
+	return Promise.reject(error)
 });
 
-/* GET方法，对应GET请求 */
-export function get(url, params) {
-	return new Promise((resolve, reject) => {
-		axios.get(url, {
-			params: params
-		}).then(res => {
-			resolve(res.data);
-		}).catch(err => {
-			reject(err.data)
-		})
-	})
-}
-/* post方法，对应post请求 */
-export function post(url, params) {
-	return new Promise((resolve, reject) => {
-		axios.post(url, params)
-			.then(res => {
-				resolve(res.data);
-			})
-			.catch(err => {
-				reject(err.data)
-			})
-	});
-}
-
-/* post IMg方法，对应post请求 */
-export function postImg(url, params) {
-	return new Promise((resolve, reject) => {
-		imgAxios.post(url, params)
-			.then(res => {
-				resolve(res.data);
-			})
-			.catch(err => {
-				reject(err.data)
-			})
-	});
-}
-
-export const imgBaseUrl = baseUrl;
+export default service
